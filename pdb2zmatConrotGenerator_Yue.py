@@ -30,7 +30,7 @@
 
 # List of Inputs to perform the calculation
 
-complexPDB = 'full.lys.plus8.OPT-orig.pdb'
+complexPDB = 'MIF-180_cplx_orig.cm5_fixed.pdb'
 ligandZmatOrig = 'benzene.z'
 ligandResidueName = 'LIG'
 
