@@ -2,9 +2,8 @@
 ######################################################################################################################################
 # Automatic Zmatrix script generator for BOSS and MCPRO 
 # 
-# Authors: Israel Cabeza de Vaca Lopez
-#          Matthew Robinson
-#          Yue Qian
+# Authors: Israel Cabeza de Vaca Lopez (Initial Python code conversion)
+#          Yue Qian (Initial system set up and tests; modification for MIF protein)
 #
 # Script based on the README notes written by Dr. Julian Tirado-Rives 
 #
