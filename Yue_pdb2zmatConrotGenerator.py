@@ -2,9 +2,14 @@
 ######################################################################################################################################
 # Automatic Zmatrix script generator for BOSS and MCPRO 
 # 
-# Authors: Israel Cabeza de Vaca Lopez (Initial Python code conversion)
-#          Yue Qian (Initial system set up and tests; modification for MIF protein)
-#
+# Authors: Israel Cabeza de Vaca Lopez, israel.cabezadevaca@yale.edu
+#          Matthew Robinson, matthew.robinson@yale.edu
+#          Yue Qian, yue.qian@yale.edu
+# Credits: Israel: Initial Python code construction;
+#          Matthew: Code generalization and testing;
+#                   refer to https://github.com/mc-robinson/choptools
+#          Yue: Initial system set up and special version for MIF protein;
+#                    refer to https://github.com/fdwonder/chop_MIF
 # Script based on the README notes written by Dr. Julian Tirado-Rives 
 #
 # Usage: python xxxxx.py -p pdb_file -r residue_name -c cutoff_size
@@ -26,35 +31,70 @@
 # #          -This program should be run within that environment
 #       
 ######################################################################################################################################
-# List of Inputs to perform the calculation
-
-complexPDB = 'MIF-180.cm5.pdb'
-ligandZmatOrig = '1XX-a2-expand.cm5.z'
-ligandResidueName = 'LIG'
-
-ligandLstToRemoveFromPDB = []
-residueToBeTheCenterOfTheChopping = 'LIG'   # Normally the ligand
-setCapOriginAtom = 'N06'  # the first one before DUMMY atoms in the ligand (normally)
-setCutOffSize = '20.0'
-HipLstOfResidues = []  # resnumber, Chain  #optional
-HidLstOfResidues = ['40a','62a','40b','62b','40c','62c']  # resnumber, Chain
-
-titleOfYourSystem = 'MIF-180-20A' # optional
-ResidueChangeSelection = ['PROA1','PROB1','PROC1']
-ResidueFinalSelection = ['PRN', 'PRN', 'PRN'] # ResFiSel has to be of same length as ResChSel
-
-fixBackBoneSelection = ['11 12'] #['4 67 70 74 110 144 152 153'] # If you have a lot of residues split the selection in different lines
-fixShortChainCri = '7'
-
-# ********************** END OF INPUT PARAMETERS *********************************
-resnumberlist=[]
-reslinelist=[]
-
 
 
 import os
 import sys
 import pickle
+import argparse
+
+
+def main():
+
+
+
+
+    checkParameters()
+    
+    
+    # Use argparse
+    parser = argparse.ArgumentParser(description='Necessary chop options.')
+    parser.add_argument("--zmat",help="define whether the zmat is provided")
+    args = parser.parse_args()
+
+    #input = input("Is optimized zmat available? y/n:"+'\n')
+    # input ='y'
+    if args.zmat=='y':
+        print("Taking opted zmat from" ,ligandZmatOrig)
+        print("skipping GenLigPDB, PreptLigWChimera and OptLig")
+        _,resnumber, resnumberLigandOriginal = generateLigandPDB(complexPDB,ligandResidueName)
+        ligandZmat = fixDummyAtomNamesDirect(ligandZmatOrig)
+        print ("ligandZmat is now: %s" % ligandZmat)
+
+    else:
+        print("Constructing zmat from the complex file")
+        ligandZmat, resnumber, resnumberLigandOriginal = prepareLigandZmatrix(complexPDB, ligandResidueName, mcproPath,
+                                                                      BOSSscriptsPath)
+
+    fixedComplexPDB = fixPDBprotein(complexPDB, ligandResidueName)
+
+    mergeLigandWithPDBProtein(mcproPath,fixedComplexPDB,ligandZmat,resnumberLigandOriginal)
+
+    prepareReducedChopped(fixedComplexPDB,ligandLstToRemoveFromPDB,residueToBeTheCenterOfTheChopping,setCapOriginAtom,setCutOffSize,HipLstOfResidues,HidLstOfResidues)
+
+    #var2 = input("Any additional modification before executing pepz? y/n:"+'\n')
+    #
+    #if str(var2)=='y':
+    #    print("Fine")
+    #    resnumberlist,reslinelist=locateRes(fixedComplexPDB, ResidueChangeSelection,ResidueFinalSelection)
+    #    ReplaceRes(fixedComplexPDB,resnumberlist,reslinelist,ResidueFinalSelection)
+    #else:
+    #    print("Continue")
+
+    FixShortChain(fixedComplexPDB,fixShortChainCri)
+
+    prepareFinalZmatrixWithPEPz(fixedComplexPDB,titleOfYourSystem,ligandZmat,fixBackBoneSelection)
+
+    createZmatrices(fixedComplexPDB, ligandResidueName)
+
+    relaxProteinLigand(fixedComplexPDB,mcproPath)
+
+    generateFinalStructuresWithCAP(fixedComplexPDB)
+
+
+
+
+
 
 
 def locateRes(complexPDB, ResidueChangeSelection,ResidueFinalSelection):
@@ -234,21 +274,21 @@ def FixShortChain(complexPDB,fixShortChainCri):
 
 def checkParameters():
 
-	if not mcproPath:
-		print('Define MCPROdir enviroment variable, please')
-		sys.exit()
-	else:
-		print('Using MCPROdir .....    ',mcproPath)
+    if not mcproPath:
+        print('Define MCPROdir enviroment variable, please')
+        sys.exit()
+    else:
+        print('Using MCPROdir .....    ',mcproPath)
 
-	if not BOSSPath:
-		print('Define BOSSdir enviroment variable, please')
-		sys.exit()
-	else:
-		print('Using BOSSdir .....    ',BOSSPath)
+    if not BOSSPath:
+        print('Define BOSSdir enviroment variable, please')
+        sys.exit()
+    else:
+        print('Using BOSSdir .....    ',BOSSPath)
 
-	if not os.path.isfile(complexPDB):
-		print('PDB not found ......    ',complexPDB)
-		sys.exit()
+    if not os.path.isfile(complexPDB):
+        print('PDB not found ......    ',complexPDB)
+        sys.exit()
 
 def generateLigandPDB(complexPDB, ligandResidueName):
 
@@ -672,49 +712,42 @@ def generateFinalStructuresWithCAP(complexPDB):
         #  ********************************************************************************
 if __name__ == "__main__":
 
-	mcproPath = os.environ.get('MCPROdir')
-	BOSSPath = os.environ.get('BOSSdir')
+    mcproPath = os.environ.get('MCPROdir')
+    BOSSPath = os.environ.get('BOSSdir')
 
-	BOSSscriptsPath = os.path.join(BOSSPath,'scripts')
+    BOSSscriptsPath = os.path.join(BOSSPath,'scripts')
 
-	#  *********************** CODE STARTS *********************************************
+    # List of Inputs to perform the calculation
+    
+    complexPDB = 'MIF-180.cm5.pdb'
+    ligandZmatOrig = '1XX-a2-expand.cm5.z'
+    ligandResidueName = 'LIG'
+    
+    ligandLstToRemoveFromPDB = []
+    residueToBeTheCenterOfTheChopping = 'LIG'   # Normally the ligand
+    setCapOriginAtom = 'N06'  # the first one before DUMMY atoms in the ligand (normally)
+    setCutOffSize = '20.0'
+    HipLstOfResidues = []  # resnumber, Chain  #optional
+    HidLstOfResidues = ['40a','62a','40b','62b','40c','62c']  # resnumber, Chain
+    
+    titleOfYourSystem = 'MIF-180-20A' # optional
+    ResidueChangeSelection = ['PROA1','PROB1','PROC1']
+    ResidueFinalSelection = ['PRN', 'PRN', 'PRN'] # ResFiSel has to be of same length as ResChSel
+    
+    fixBackBoneSelection = ['11 12'] #['4 67 70 74 110 144 152 153'] # If you have a lot of residues split the selection in different lines
+    fixShortChainCri = '7'
+    
+    resnumberlist=[]
+    reslinelist=[]
 
-checkParameters()
-
-input = input("Is optimized zmat available? y/n:"+'\n')
-# input ='y'
-if input=='y':
-    print("Taking opted zmat from" ,ligandZmatOrig)
-    print("skipping GenLigPDB, PreptLigWChimera and OptLig")
-    _,resnumber, resnumberLigandOriginal = generateLigandPDB(complexPDB,ligandResidueName)
-    ligandZmat = fixDummyAtomNamesDirect(ligandZmatOrig)
+    # ********************** END OF INPUT PARAMETERS *********************************
 
 
-else:
-    print("Constructing zmat from the complex file")
-    ligandZmat, resnumber, resnumberLigandOriginal = prepareLigandZmatrix(complexPDB, ligandResidueName, mcproPath,
-                                                                  BOSSscriptsPath)
 
-fixedComplexPDB = fixPDBprotein(complexPDB, ligandResidueName)
+    # run the main function
+    main()
 
-mergeLigandWithPDBProtein(mcproPath,fixedComplexPDB,ligandZmat,resnumberLigandOriginal)
+    #  *********************** CODE STARTS *********************************************
 
-prepareReducedChopped(fixedComplexPDB,ligandLstToRemoveFromPDB,residueToBeTheCenterOfTheChopping,setCapOriginAtom,setCutOffSize,HipLstOfResidues,HidLstOfResidues)
 
-input = input("\n Any additional modification before executing pepz? y/n:"+'\n')
-#
-if input=='y':
 
-    resnumberlist,reslinelist=locateRes(fixedComplexPDB, ResidueChangeSelection,ResidueFinalSelection)
-
-    ReplaceRes(fixedComplexPDB,resnumberlist,reslinelist,ResidueFinalSelection)
-
-FixShortChain(fixedComplexPDB,fixShortChainCri)
-
-prepareFinalZmatrixWithPEPz(fixedComplexPDB,titleOfYourSystem,ligandZmat,fixBackBoneSelection)
-
-createZmatrices(fixedComplexPDB, ligandResidueName)
-
-relaxProteinLigand(fixedComplexPDB,mcproPath)
-
-generateFinalStructuresWithCAP(fixedComplexPDB)
