@@ -49,7 +49,8 @@ def main():
     
     # Use argparse
     parser = argparse.ArgumentParser(description='Necessary chop options.')
-    parser.add_argument("--zmat",help="define whether the zmat is provided")
+    parser.add_argument("--zmat",help="y/n; define whether the zmat is provided")
+    parser.add_argument("--resi",help="y/n; specify if any residues need to be replaced")
     args = parser.parse_args()
 
     #input = input("Is optimized zmat available? y/n:"+'\n')
@@ -74,12 +75,12 @@ def main():
 
     #var2 = input("Any additional modification before executing pepz? y/n:"+'\n')
     #
-    #if str(var2)=='y':
-    #    print("Fine")
-    #    resnumberlist,reslinelist=locateRes(fixedComplexPDB, ResidueChangeSelection,ResidueFinalSelection)
-    #    ReplaceRes(fixedComplexPDB,resnumberlist,reslinelist,ResidueFinalSelection)
-    #else:
-    #    print("Continue")
+    if args.resi=='y':
+        print("Replacing residues %s with %s" % (ResidueChangeSelection,ResidueFinalSelection))
+        resnumberlist,reslinelist=locateRes(fixedComplexPDB, ResidueChangeSelection,ResidueFinalSelection)
+        ReplaceRes(fixedComplexPDB,resnumberlist,reslinelist,ResidueFinalSelection)
+    else:
+        print("Normal, Continue")
 
     FixShortChain(fixedComplexPDB,fixShortChainCri)
 
@@ -452,7 +453,7 @@ def fixPDBprotein(complexPDB, ligandResidueName):
 
     return fileoutName
 
-def mergeLigandWithPDBProtein(mcproPath, complexPDB, ligandResidueName, resnumber):
+def mergeLigandWithPDBProtein(mcproPath, complexPDB, ligandZmat, resnumber):
     # clu -t:s=5001 2be2.pdb -r r22_h.z -n 2be2_cplx.pdb
 
     print('Merging ligand with PDB Protein')
