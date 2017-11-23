@@ -14,7 +14,7 @@
 #
 # Usage: python xxxxx.py -p pdb_file -r residue_name -c cutoff_size
 #           use --help for further details or instructions
-#
+#        python3.6 test.py --zmat y --resi y
 # Outputs:
 # Generatess a folder called finalZmatrices with the final zmatrix files (all, cap, cap + conrot for flexible backbones) 
 # 
@@ -82,9 +82,9 @@ def main():
     else:
         print("Normal, Continue")
 
-    FixShortChain(fixedComplexPDB,fixShortChainCri)
+    Total_fixBackBoneSelection = FixShortChain(fixedComplexPDB,fixBackBoneSelection,fixShortChainCri)
 
-    prepareFinalZmatrixWithPEPz(fixedComplexPDB,titleOfYourSystem,ligandZmat,fixBackBoneSelection)
+    prepareFinalZmatrixWithPEPz(fixedComplexPDB,titleOfYourSystem,ligandZmat,Total_fixBackBoneSelection)
 
     createZmatrices(fixedComplexPDB, ligandResidueName)
 
@@ -236,42 +236,34 @@ def ReplaceRes(complexPDB,resnumberlist,reslinelist,ResidueFinalSelection):
 
     os.system('cp tmp.txt ' + complexPDBName +'.chop.var.in')
 
-def FixShortChain(complexPDB,fixShortChainCri):
+def FixShortChain(complexPDB,fixBackBoneSelection,fixShortChainCri):
 
     complexPDBName = complexPDB[:-4]
     choppedPDB = complexPDBName+'.chop.pdb'
     # count the occurence of TER in chopped pdb file
-    flag1=0
-    flag2=0
-    resnamelisttmp=[]
+    flag=0
+    resnumlisttmp_chain =[]
     resnumlisttmp =[]
     # choppedPDB = 'MIF-180.cm5_fixed.chop.pdb'
     with open(choppedPDB) as f:
         ilines = f.readlines()  # f.readlines command is important to have access to line numbers
-        for num, line in enumerate(f, 1):
+        for num, line in enumerate(ilines):
             if 'TER' in line:
-                flag1 = flag1 +1 # occurance of TER
-                for ele in ilines[flag2:num-1]:
-                    resnamelisttmp.append(ele.split()[3]) # append residue names in one chain to the list
-                A = resnamelisttmp
-                B = len(set(A)) # count the number of residues on the chain
-                if B<=float(fixShortChainCri):
-                    for ele in ilines[flag2:num-1]:
-                        resnumlisttmp.append(ele.split()[4])  # append residue names in one chain to the list
-                    C = set(resnumlisttmp)
-                    CC = ' '.join(C)
-                    fixBackBoneSelection.append(CC)
-                    # fixBackBoneSelection = ' '.join(fixBackBoneSelection)
-                flag2 = num
+                for ele in ilines[flag:num]:
+                    resnumlisttmp_chain.append(ele.split()[4]) # append residue num in one chain to the list
+                Uniq_res_num = set(resnumlisttmp_chain) # count the number of residues on the chain
+                if len(Uniq_res_num)<=float(fixShortChainCri):
+                    for ele in Uniq_res_num:
+                        resnumlisttmp.append(ele)
+                flag = num+1 # start from the next line of "TER"
+    # not avoid duplicates (originally defined non-conrot backbone and shortchain backbone)
+    # not taking account into the original backbone yet!!!
+    # resnumberlist = set(resnumberlisttmp)
+    # turn into correct string format
+    # 1. join string resnumlisttmp 2. combine with the original fixBackBoneSelection 3. make a new list by [...]
+    Total_fixBackBoneSelection = [fixBackBoneSelection +  ' '.join(str(x) for x in resnumlisttmp)]
 
-
-
-
-
-
-
-
-
+    return Total_fixBackBoneSelection
 
 def checkParameters():
 
@@ -735,8 +727,8 @@ if __name__ == "__main__":
     ResidueChangeSelection = ['PROA1','PROB1','PROC1']
     ResidueFinalSelection = ['PRN', 'PRN', 'PRN'] # ResFiSel has to be of same length as ResChSel
     
-    fixBackBoneSelection = ['11 12'] #['4 67 70 74 110 144 152 153'] # If you have a lot of residues split the selection in different lines
-    fixShortChainCri = '7'
+    fixBackBoneSelection = '' # '4 67 ' # Leave a space in the end if not empty; If you have a lot of residues split the selection in different lines
+    fixShortChainCri = '5' # defult 5
     
     resnumberlist=[]
     reslinelist=[]
