@@ -14,7 +14,7 @@
 #
 # Usage: python xxxxx.py -p pdb_file -r residue_name -c cutoff_size
 #           use --help for further details or instructions
-#        python3.6 test.py --zmat y --resi y
+#        python3.6 xxx.py --zmat y --resi y
 # Outputs:
 # Generatess a folder called finalZmatrices with the final zmatrix files (all, cap, cap + conrot for flexible backbones) 
 # 

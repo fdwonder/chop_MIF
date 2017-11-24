@@ -1,0 +1,35 @@
+PROCEDURE:
+updated automatic script for MIF chop and other notes for MCPRO input file preparetion 
+
+1. With cleaned cplx.pdb and ligand.z file 
+python3.6 Yue*py --zmat y --resi y
+
+MIF-180.cm5_fixedcapcon.z is the final zmat (cap ---> var; con ---> conrot on) 
+
+
+*** Things to check in zmat
+* CAP atom added; dihedral angle sampling range;
+* "Excluded Atoms List follows" starting from negative numbers
+* Use the first dummy atom of the ligand as the center of HW restraint
+* Apply necessary changes to .Q and .LJ zmat
+
+
+2. Add hardwall restraints
+
+*** Things to check out in the bound feppar file
+* cap vs box
+* NCENT2 & NROTA2
+* NVCHG & NSCHG NSCHG2 NCONROT
+* ADELS1 & conrotA,B,C, pivotAngle
+* RDELS1 & RDELS2
+
+3. submission via
+tcsh sub2q.INITIAL filename
+tcsh sub2q.single filename
+
+
+4. Collect the free energy change via
+tcsh organize_results filename
+5. Calculate the cooresponding restarint corrections.
+
+
